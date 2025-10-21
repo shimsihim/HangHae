@@ -1,5 +1,9 @@
-package io.hhplus.tdd.point;
+package io.hhplus.tdd.point.controller;
 
+import io.hhplus.tdd.point.domain.PointHistory;
+import io.hhplus.tdd.point.domain.UserPoint;
+import io.hhplus.tdd.point.dto.request.PointChargeDTO;
+import io.hhplus.tdd.point.dto.request.PointUseDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -38,8 +42,8 @@ public class PointController {
     @PatchMapping("{id}/charge")
     public UserPoint charge(
             @PathVariable long id,
-            @RequestBody long amount
-    ) {
+            @RequestBody PointChargeDTO pointChargeDTO
+            ) {
         return new UserPoint(0, 0, 0);
     }
 
@@ -49,7 +53,7 @@ public class PointController {
     @PatchMapping("{id}/use")
     public UserPoint use(
             @PathVariable long id,
-            @RequestBody long amount
+            @RequestBody PointUseDTO pointUseDTO
     ) {
         return new UserPoint(0, 0, 0);
     }
