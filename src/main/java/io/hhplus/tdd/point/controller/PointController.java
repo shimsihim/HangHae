@@ -4,6 +4,11 @@ import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.domain.UserPoint;
 import io.hhplus.tdd.point.dto.request.PointChargeDTO;
 import io.hhplus.tdd.point.dto.request.PointUseDTO;
+import io.hhplus.tdd.point.dto.response.PointHistoryDTO;
+import io.hhplus.tdd.point.dto.response.UserPointDTO;
+import io.hhplus.tdd.point.service.PointHistoryService;
+import io.hhplus.tdd.point.service.UserPointService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -12,49 +17,45 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/point")
+@RequiredArgsConstructor
 public class PointController {
 
     private static final Logger log = LoggerFactory.getLogger(PointController.class);
 
-    /**
-     * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
-     */
+    private final UserPointService userPointService;
+    private final PointHistoryService pointHistoryService;
+
     @GetMapping("{id}")
-    public UserPoint point(
+    public UserPointDTO point(
             @PathVariable long id
     ) {
-        return new UserPoint(0, 0, 0);
+        return userPointService.getUserPoint(id);
     }
 
-    /**
-     * TODO - 특정 유저의 포인트 충전/이용 내역을 조회하는 기능을 작성해주세요.
-     */
     @GetMapping("{id}/histories")
-    public List<PointHistory> history(
+    public List<PointHistoryDTO> history(
             @PathVariable long id
     ) {
-        return List.of();
+        return pointHistoryService.getHistoryById(id);
     }
 
-    /**
-     * TODO - 특정 유저의 포인트를 충전하는 기능을 작성해주세요.
-     */
     @PatchMapping("{id}/charge")
-    public UserPoint charge(
+    public UserPointDTO charge(
             @PathVariable long id,
             @RequestBody PointChargeDTO pointChargeDTO
             ) {
-        return new UserPoint(0, 0, 0);
+        UserPointDTO ret = userPointService.addUserPoint(id , pointChargeDTO.amount());
+        pointHistoryService.addChargeHistory(id , pointChargeDTO.amount());
+        return ret;
     }
 
-    /**
-     * TODO - 특정 유저의 포인트를 사용하는 기능을 작성해주세요.
-     */
     @PatchMapping("{id}/use")
-    public UserPoint use(
+    public UserPointDTO use(
             @PathVariable long id,
             @RequestBody PointUseDTO pointUseDTO
     ) {
-        return new UserPoint(0, 0, 0);
+        UserPointDTO ret = userPointService.useUserPoint(id , pointUseDTO.amount());
+        pointHistoryService.addUseHistory(id , pointUseDTO.amount());
+        return ret;
     }
 }
