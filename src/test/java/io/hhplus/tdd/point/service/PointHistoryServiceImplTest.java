@@ -32,6 +32,7 @@ class PointHistoryServiceImplTest {
     PointHistoryRepository pointHistoryRepository;
 
     @Test
+    @DisplayName("포인트_충전_사용_히스토리_조회")
     void 포인트_충전_사용_히스토리_조회(){
         //given
         long userId = 1l;
@@ -47,8 +48,38 @@ class PointHistoryServiceImplTest {
 
         //then
         assertThat(dtoList).hasSize(list.size());
+        verify(pointHistoryRepository, times(1)).getHistoryById(userId);
         
-        //dto리스트와 list가 완전히 동일한지 필요
-        //verify로 1번 호출도 검증 필요
+        //dto리스트와 list가 완전히 동일한지 검증 필요
+    }
+
+    @Test
+    void 포인트_사용_히스토리_추가(){
+        //given
+        long userId = 1l;
+        long amount = 1000l;
+        PointHistory ph = new PointHistory(0,userId,amount, TransactionType.USE , System.currentTimeMillis());
+        when(pointHistoryRepository.addHistory(any(PointHistory.class))).thenReturn(ph);
+
+        //when
+        PointHistoryDTO dto = pointHistoryService.addUseHistory(userId , amount);
+
+        //then
+        assertThat(dto).usingRecursiveAssertion().isEqualTo(PointHistoryDTO.from(ph));
+    }
+
+    @Test
+    void 충전_히스토리_추가(){
+        //given
+        long userId = 1l;
+        long amount = 1000l;
+        PointHistory ph = new PointHistory(0,userId,amount, TransactionType.CHARGE , System.currentTimeMillis());
+        when(pointHistoryRepository.addHistory(any(PointHistory.class))).thenReturn(ph);
+
+        //when
+        PointHistoryDTO dto = pointHistoryService.addUseHistory(userId , amount);
+
+        //then
+        assertThat(dto).usingRecursiveAssertion().isEqualTo(PointHistoryDTO.from(ph));
     }
 }
