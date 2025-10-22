@@ -47,13 +47,13 @@ class ApiControllerAdvice {
     @ExceptionHandler(value = UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException e) {
         return ResponseEntity.status(e.getErrCode().getStatus())
-                .body(new ErrorResponse(e.getErrCode().getStatus().toString(), e.getMessage()));
+                .body(new ErrorResponse(e.getErrCode().getErrCode(), e.getMessage()));
     }
 
     @ExceptionHandler(value = PointRangeException.class)
     public ResponseEntity<ErrorResponse> handlePointRangeException(PointRangeException e) {
         return ResponseEntity.status(e.getErrCode().getStatus())
-                .body(new ErrorResponse(e.getErrCode().getStatus().toString(), e.getMessage()));
+                .body(new ErrorResponse(e.getErrCode().getErrCode(), e.getMessage()));
     }
 
 
