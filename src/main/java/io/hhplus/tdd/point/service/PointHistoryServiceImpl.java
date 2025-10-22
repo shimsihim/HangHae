@@ -5,6 +5,7 @@ import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.dto.response.PointHistoryDTO;
 import io.hhplus.tdd.point.dto.response.UserPointDTO;
+import io.hhplus.tdd.point.repository.PointHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,24 +16,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PointHistoryServiceImpl implements PointHistoryService {
 
-    private final PointHistoryTable pointHistoryTable;
+    private final PointHistoryRepository pointHistoryRepository;
 
     @Override
     public List<PointHistoryDTO> getHistoryById(Long userId) {
-        return pointHistoryTable.selectAllByUserId(userId).stream().map(PointHistoryDTO :: from).collect(Collectors.toUnmodifiableList());
+        return pointHistoryRepository.getHistoryById(userId).stream().map(PointHistoryDTO :: from).collect(Collectors.toUnmodifiableList());
     }
 
     @Override
     public PointHistoryDTO addUseHistory(Long userId, Long amount) {
         PointHistory pointHistory = PointHistory.getAddPointHistory(userId , amount , TransactionType.USE);
-        PointHistory afterSave = pointHistoryTable.insert(pointHistory.userId() , pointHistory.amount() , pointHistory.type() , pointHistory.updateMillis());
+        PointHistory afterSave = pointHistoryRepository.addHistory(pointHistory);
         return PointHistoryDTO.from(afterSave);
     }
 
     @Override
     public PointHistoryDTO addChargeHistory(Long userId, Long amount) {
         PointHistory pointHistory = PointHistory.getAddPointHistory(userId , amount , TransactionType.CHARGE);
-        PointHistory afterSave = pointHistoryTable.insert(pointHistory.userId() , pointHistory.amount() , pointHistory.type() , pointHistory.updateMillis());
+        PointHistory afterSave = pointHistoryRepository.addHistory(pointHistory);
         return PointHistoryDTO.from(afterSave);
     }
 }
