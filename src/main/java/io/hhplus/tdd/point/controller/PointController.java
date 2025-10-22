@@ -8,9 +8,12 @@ import io.hhplus.tdd.point.dto.response.PointHistoryDTO;
 import io.hhplus.tdd.point.dto.response.UserPointDTO;
 import io.hhplus.tdd.point.service.PointHistoryService;
 import io.hhplus.tdd.point.service.UserPointService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/point")
 @RequiredArgsConstructor
+@Validated
 public class PointController {
 
     private static final Logger log = LoggerFactory.getLogger(PointController.class);
@@ -27,22 +31,22 @@ public class PointController {
 
     @GetMapping("{id}")
     public UserPointDTO point(
-            @PathVariable long id
+            @PathVariable @Positive(message = "사용자 ID는 양수(0보다 큰 값)여야 합니다.") long id
     ) {
         return userPointService.getUserPoint(id);
     }
 
     @GetMapping("{id}/histories")
     public List<PointHistoryDTO> history(
-            @PathVariable long id
+            @PathVariable @Positive(message = "사용자 ID는 양수(0보다 큰 값)여야 합니다.") long id
     ) {
         return pointHistoryService.getHistoryById(id);
     }
 
     @PatchMapping("{id}/charge")
     public UserPointDTO charge(
-            @PathVariable long id,
-            @RequestBody PointChargeDTO pointChargeDTO
+            @PathVariable @Positive(message = "사용자 ID는 양수(0보다 큰 값)여야 합니다.") long id,
+            @RequestBody @Valid PointChargeDTO pointChargeDTO
             ) {
         UserPointDTO ret = userPointService.addUserPoint(id , pointChargeDTO.amount());
         pointHistoryService.addChargeHistory(id , pointChargeDTO.amount());
@@ -51,8 +55,8 @@ public class PointController {
 
     @PatchMapping("{id}/use")
     public UserPointDTO use(
-            @PathVariable long id,
-            @RequestBody PointUseDTO pointUseDTO
+            @PathVariable @Positive(message = "사용자 ID는 양수(0보다 큰 값)여야 합니다.") long id,
+            @RequestBody @Valid PointUseDTO pointUseDTO
     ) {
         UserPointDTO ret = userPointService.useUserPoint(id , pointUseDTO.amount());
         pointHistoryService.addUseHistory(id , pointUseDTO.amount());
