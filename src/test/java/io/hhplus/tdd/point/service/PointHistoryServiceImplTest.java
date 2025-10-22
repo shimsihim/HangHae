@@ -1,0 +1,54 @@
+package io.hhplus.tdd.point.service;
+
+import io.hhplus.tdd.point.domain.PointHistory;
+import io.hhplus.tdd.point.domain.TransactionType;
+import io.hhplus.tdd.point.dto.response.PointHistoryDTO;
+import io.hhplus.tdd.point.repository.PointHistoryRepository;
+import io.hhplus.tdd.point.repository.UserPointRepository;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.BDDMockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class PointHistoryServiceImplTest {
+    @InjectMocks
+    PointHistoryServiceImpl pointHistoryService;
+
+    @Mock
+    PointHistoryRepository pointHistoryRepository;
+
+    @Test
+    void 포인트_충전_사용_히스토리_조회(){
+        //given
+        long userId = 1l;
+        List<PointHistory> list = new ArrayList<>();
+        list.add(new PointHistory(0,userId,1000, TransactionType.CHARGE , System.currentTimeMillis()));
+        list.add(new PointHistory(1,userId,5000, TransactionType.CHARGE , System.currentTimeMillis()));
+        list.add(new PointHistory(2,userId,1000, TransactionType.USE , System.currentTimeMillis()));
+        list.add(new PointHistory(3,userId,1000, TransactionType.USE , System.currentTimeMillis()));
+        given(pointHistoryRepository.getHistoryById(userId)).willReturn(list);
+
+        //when
+        List<PointHistoryDTO> dtoList = pointHistoryService.getHistoryById(userId);
+
+        //then
+        assertThat(dtoList).hasSize(list.size());
+        
+        //dto리스트와 list가 완전히 동일한지 필요
+        //verify로 1번 호출도 검증 필요
+    }
+}
