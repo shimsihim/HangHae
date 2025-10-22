@@ -1,5 +1,6 @@
 package io.hhplus.tdd.common;
 
+import io.hhplus.tdd.point.exception.PointRangeException;
 import io.hhplus.tdd.point.exception.UserNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,8 +12,14 @@ class ApiControllerAdvice extends ResponseEntityExceptionHandler {
 
 
 
-    @ExceptionHandler(value = Exception.class)
+    @ExceptionHandler(value = UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException e) {
+        return ResponseEntity.status(e.getErrCode().getStatus())
+                .body(new ErrorResponse(e.getErrCode().getStatus().toString(), e.getMessage()));
+    }
+
+    @ExceptionHandler(value = PointRangeException.class)
+    public ResponseEntity<ErrorResponse> handlePointRangeException(PointRangeException e) {
         return ResponseEntity.status(e.getErrCode().getStatus())
                 .body(new ErrorResponse(e.getErrCode().getStatus().toString(), e.getMessage()));
     }

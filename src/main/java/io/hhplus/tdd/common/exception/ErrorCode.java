@@ -8,9 +8,10 @@ public enum ErrorCode {
 
     CMM_BUSINESS_EXCEPTION(HttpStatus.BAD_REQUEST, "C0001" , "비즈니스 에러"),
 
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U0001" , "유저를 찾을 수 없습니다."),
-    USER_POINT_MUST_POSITIVE(HttpStatus.BAD_REQUEST, "U0002" , "포인트 충전 및 사용은 양수만 가능합니다."),
-    USER_POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "U0003" , "잔액이 부족합니다.");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U0001" , "유저를 찾을 수 없습니다. 유저 아이디 : %d"),
+    USER_POINT_MUST_POSITIVE(HttpStatus.BAD_REQUEST, "U0002" , "포인트 충전 및 사용은 양수만 가능합니다. 유저 아이디 : %d , 충전 금액 : %d"),
+    USER_POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "U0003" , "잔액이 부족합니다. 유저 아이디 : %d , 현재 금액 : %d , 사용 금액 : %d"),
+    USER_POINT_OVERFLOW(HttpStatus.BAD_REQUEST, "U0004" , "충전 후 금액이 최대값을 초과 합니다. 유저 아이디 : %d ,현재 금액 : %d , 충전(사용) 금액 : %d");
 
 
     private HttpStatus status;
