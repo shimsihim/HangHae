@@ -25,15 +25,15 @@ public class UserPointServiceImpl implements UserPointService {
         return UserPointDTO.from(userPointRepository.chargeUserPoint(chargePoint));
     }
 
-    @Override
-    public UserPointDTO useUserPoint(Long userId, Long amount) {
-        UserPoint userPoint = getUserPointById(userId);
-        UserPoint usePoint = userPoint.usePoint(amount);
-        return UserPointDTO.from(userPointRepository.chargeUserPoint(usePoint));
-    }
+        @Override
+        public UserPointDTO useUserPoint(Long userId, Long amount) {
+            UserPoint userPoint = getUserPointById(userId);
+            UserPoint usePoint = userPoint.usePoint(amount);
+            return UserPointDTO.from(userPointRepository.useUserPoint(usePoint));
+        }
 
-    private UserPoint getUserPointById(Long userId){
-        return userPointRepository.getUserPointByUserId(userId)
+        private UserPoint getUserPointById(Long userId){
+            return userPointRepository.getUserPointByUserId(userId)
                 .orElseThrow(()-> new UserNotFoundException(userId));
     }
 }
