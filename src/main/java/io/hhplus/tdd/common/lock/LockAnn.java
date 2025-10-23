@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface LockAnn {
-    long waitTime() default 2000L;
+    long waitTime() default 3000L;
     TimeUnit timeUnit() default TimeUnit.MILLISECONDS;
     LockKey lockKey() default LockKey.USER;
 }
