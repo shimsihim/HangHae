@@ -1,13 +1,11 @@
 package io.hhplus.tdd;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.tdd.point.dto.request.PointChargeDTO;
 import io.hhplus.tdd.point.dto.request.PointUseDTO;
 import io.hhplus.tdd.point.dto.response.UserPointDTO;
 import io.hhplus.tdd.point.service.PointHistoryService;
 import io.hhplus.tdd.point.service.UserPointService;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,9 +22,6 @@ import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -44,15 +39,47 @@ class TddApplicationTest {
     @Autowired
     private PointHistoryService pointHistoryService;
     @Autowired
+    private io.hhplus.tdd.database.UserPointTable userPointTable;
+    @Autowired
     ObjectMapper objectMapper;
 
-    private final static long testUserId = 1l;
+    private final static long testUserId = 1L;
 
+    /**
+     * 동시성 테스트를 위한 헬퍼 메서드
+     * @param threadCount 스레드 개수
+     * @param task 각 스레드에서 실행할 작업
+     */
+    private void executeConcurrentTest(int threadCount, Runnable task) throws InterruptedException {
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(threadCount);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    startLatch.await();
+                    task.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    endLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        endLatch.await();
+        executorService.shutdown();
+    }
 
     @BeforeEach
-    void setUp() { //인메모리 테이블 클래스로 인하여 매 테스트마다 직접 클린(유저 1)
-        UserPointDTO dto = userPointService.getUserPoint(testUserId);
-        userPointService.useUserPoint(dto.id() , dto.point());
+    void setUp() {
+        // 인메모리 테이블 클래스로 인하여 매 테스트마다 포인트 초기화 (유저 1)
+        // UserPointTable의 public API를 사용하여 직접 0으로 설정
+        userPointTable.insertOrUpdate(testUserId, 0L);
     }
 
     @Nested
@@ -129,7 +156,7 @@ class TddApplicationTest {
         @Test
         void 충전_1회_실패_음수충전_테스트() throws Exception {
             //given
-            long userId = 1l;
+            long userId = testUserId;
             long amount = -10000;
             PointChargeDTO pt = new PointChargeDTO(amount);
             //when
@@ -162,46 +189,26 @@ class TddApplicationTest {
 
         @Test
         void 충전_다회_동시성_테스트() throws InterruptedException {
-
             //given
-            long userId = 1l;
+            long userId = 1L;
             PointChargeDTO pt = new PointChargeDTO(1000L);
-
             int threadPool = 7;
-            CountDownLatch startLatch = new CountDownLatch(1);
-            CountDownLatch endLatch = new CountDownLatch(threadPool);
-
-            ExecutorService executorService = Executors.newFixedThreadPool(threadPool);
 
             //when
-            for (int i = 0; i < threadPool; i++) {
-                executorService.submit(() -> {
-                    try {
-                        startLatch.await();
-                        mvc.perform(patch("/point/{id}/charge" , userId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(pt))
-                        );
-                    }
-                    catch(InterruptedException e){
-                        Thread.currentThread().interrupt();
-                    }
-                    catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                    finally {
-                        endLatch.countDown();
-                    }
-                });
-            }
-            startLatch.countDown();
-            endLatch.await();
-            executorService.shutdown();
+            executeConcurrentTest(threadPool, () -> {
+                try {
+                    mvc.perform(patch("/point/{id}/charge", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(pt))
+                    );
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
             //then
             UserPointDTO dto = userPointService.getUserPoint(userId);
             assertThat(dto.point()).isEqualTo(pt.amount() * threadPool);
-
         }
     }
 
@@ -270,46 +277,26 @@ class TddApplicationTest {
 
         @Test
         void 사용_다회_동시성_테스트() throws InterruptedException {
-
             //given
             int threadPool = 7;
-            CountDownLatch startLatch = new CountDownLatch(1);
-            CountDownLatch endLatch = new CountDownLatch(threadPool);
-
-            long usePointPerThread = initPoint/threadPool;
-            PointChargeDTO pt = new PointChargeDTO(usePointPerThread);
-
-            ExecutorService executorService = Executors.newFixedThreadPool(threadPool);
+            long usePointPerThread = initPoint / threadPool;
+            PointUseDTO pu = new PointUseDTO(usePointPerThread);
 
             //when
-            for (int i = 0; i < threadPool; i++) {
-                executorService.submit(() -> {
-                    try {
-                        startLatch.await();
-                        mvc.perform(patch("/point/{id}/use" , testUserId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(pt))
-                        )
-                                .andDo(print());
-                    }
-                    catch(InterruptedException e){
-                        Thread.currentThread().interrupt();
-                    }
-                    catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                    finally {
-                        endLatch.countDown();
-                    }
-                });
-            }
-            startLatch.countDown();
-            endLatch.await();
-            executorService.shutdown();
+            executeConcurrentTest(threadPool, () -> {
+                try {
+                    mvc.perform(patch("/point/{id}/use", testUserId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(pu))
+                    ).andDo(print());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
             //then
             UserPointDTO dto = userPointService.getUserPoint(testUserId);
-            assertThat(dto.point()).isEqualTo(initPoint - (initPoint/threadPool) * threadPool);
+            assertThat(dto.point()).isEqualTo(initPoint - (initPoint / threadPool) * threadPool);
         }
     }
 
