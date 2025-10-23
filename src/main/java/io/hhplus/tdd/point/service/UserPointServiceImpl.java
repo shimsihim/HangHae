@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 public class UserPointServiceImpl implements UserPointService {
 
     private final UserPointRepository userPointRepository;
+    private final PointHistoryService pointHistoryService;
 
     @Override
     public UserPointDTO getUserPoint(Long userId) {
@@ -24,7 +25,9 @@ public class UserPointServiceImpl implements UserPointService {
     public UserPointDTO addUserPoint(Long userId, Long amount) {
         UserPoint userPoint = getUserPointById(userId);
         UserPoint chargePoint = userPoint.chargePoint(amount);
-        return UserPointDTO.from(userPointRepository.chargeUserPoint(chargePoint));
+        UserPoint result = userPointRepository.chargeUserPoint(chargePoint);
+        pointHistoryService.addChargeHistory(userId, amount);
+        return UserPointDTO.from(result);
     }
 
     @LockAnn
@@ -32,7 +35,9 @@ public class UserPointServiceImpl implements UserPointService {
     public UserPointDTO useUserPoint(Long userId, Long amount) {
         UserPoint userPoint = getUserPointById(userId);
         UserPoint usePoint = userPoint.usePoint(amount);
-        return UserPointDTO.from(userPointRepository.useUserPoint(usePoint));
+        UserPoint result = userPointRepository.useUserPoint(usePoint);
+        pointHistoryService.addUseHistory(userId, amount);
+        return UserPointDTO.from(result);
     }
 
     private UserPoint getUserPointById(Long userId){

@@ -101,7 +101,7 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.point").value(amount))
                     .andDo(print());
             verify(userPointService).addUserPoint(userId , amount);
-            verify(pointHistoryService).addChargeHistory(userId , amount);
+
         }
 
         @Test
@@ -121,7 +121,6 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.message").value(containsString("양수")))
                     .andDo(print());
             verify(userPointService,never()).addUserPoint(userId , amount);
-            verify(pointHistoryService,never()).addChargeHistory(userId , amount);
         }
 
         @Test
@@ -142,7 +141,6 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.message").value(containsString("양수")))
                     .andExpect(jsonPath("$.code").value("U0002"))
                     .andDo(print());
-            verify(pointHistoryService,never()).addChargeHistory(userId , amount);
         }
 
         @Test
@@ -162,7 +160,6 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.message").value(containsString("양수")))
                     .andDo(print());
             verify(userPointService,never()).addUserPoint(userId , amount);
-            verify(pointHistoryService,never()).addChargeHistory(userId , amount);
         }
     }
 
