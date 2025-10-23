@@ -68,6 +68,17 @@ The application follows a standard layered architecture with clear separation of
 - `PointHistory`: Immutable transaction record
 - TransactionType enum: CHARGE, USE
 
+### Concurrency Control
+
+**Lock-based concurrency using AOP:**
+- `@LockAnn` annotation on service methods (UserPointServiceImpl.addUserPoint, useUserPoint)
+- LockAspect intercepts annotated methods and acquires locks based on user ID
+- LockManager manages per-user ReentrantLocks
+- Default wait time: 2000ms
+- LockKey enum determines lock scope (currently USER-level)
+
+**Important**: Point operations are protected at the service layer to prevent race conditions during concurrent charge/use operations.
+
 ### Exception Handling
 
 **Custom exception hierarchy:**
@@ -81,6 +92,10 @@ The application follows a standard layered architecture with clear separation of
 - USER_POINT_MUST_POSITIVE (400): Negative amount provided
 - USER_POINT_NOT_ENOUGH (400): Insufficient balance
 - USER_POINT_OVERFLOW (400): Amount exceeds Long.MAX_VALUE
+- USER_POINT_MAX_EXCEEDED (400): Exceeds 1,000,000,000 max point limit
+- USER_POINT_CHARGE_MIN_AMOUNT (400): Charge amount below 1,000
+- USER_POINT_USE_MIN_AMOUNT (400): Use amount below 0
+- LOCK_GET_FAIL (500): Failed to acquire lock
 
 ### Key Design Patterns
 
@@ -90,6 +105,7 @@ The application follows a standard layered architecture with clear separation of
    - Response DTOs: UserPointDTO, PointHistoryDTO
 3. **Service Interface Pattern**: UserPointService/UserPointServiceImpl separation
 4. **Immutability**: Domain records return new instances on state changes
+5. **AOP for Cross-cutting Concerns**: Lock management via @LockAnn annotation
 
 ## Important Constraints
 
@@ -99,6 +115,9 @@ The application follows a standard layered architecture with clear separation of
 
 3. **Point Validation**: Business logic in UserPoint domain validates:
    - Positive amounts only
+   - Minimum charge: 1,000
+   - Minimum use: 0
+   - Maximum balance: 1,000,000,000
    - Overflow protection using Math.addExact/subtractExact
    - Sufficient balance for usage
 
