@@ -71,7 +71,7 @@ class PointHistoryServiceImplTest {
         when(pointHistoryRepository.addHistory(any(PointHistory.class))).thenReturn(ph);
 
         //when
-        PointHistoryDTO dto = pointHistoryService.addUseHistory(userId , amount);
+        PointHistoryDTO dto = pointHistoryService.addChargeHistory(userId , amount);
 
         //then
         assertThat(dto).usingRecursiveAssertion().isEqualTo(PointHistoryDTO.from(ph));
