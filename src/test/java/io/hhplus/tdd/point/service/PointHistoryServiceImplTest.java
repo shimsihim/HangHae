@@ -4,14 +4,9 @@ import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.dto.response.PointHistoryDTO;
 import io.hhplus.tdd.point.repository.PointHistoryRepository;
-import io.hhplus.tdd.point.repository.UserPointRepository;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.BDDMockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,7 +71,7 @@ class PointHistoryServiceImplTest {
         when(pointHistoryRepository.addHistory(any(PointHistory.class))).thenReturn(ph);
 
         //when
-        PointHistoryDTO dto = pointHistoryService.addUseHistory(userId , amount);
+        PointHistoryDTO dto = pointHistoryService.addChargeHistory(userId , amount);
 
         //then
         assertThat(dto).usingRecursiveAssertion().isEqualTo(PointHistoryDTO.from(ph));

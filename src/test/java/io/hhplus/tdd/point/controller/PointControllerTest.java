@@ -2,28 +2,19 @@ package io.hhplus.tdd.point.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.tdd.common.exception.ErrorCode;
-import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.dto.request.PointChargeDTO;
 import io.hhplus.tdd.point.dto.response.UserPointDTO;
 import io.hhplus.tdd.point.exception.PointRangeException;
 import io.hhplus.tdd.point.service.PointHistoryService;
 import io.hhplus.tdd.point.service.UserPointService;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
-
-import static org.assertj.core.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.BDDMockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -110,7 +101,7 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.point").value(amount))
                     .andDo(print());
             verify(userPointService).addUserPoint(userId , amount);
-            verify(pointHistoryService).addChargeHistory(userId , amount);
+
         }
 
         @Test
@@ -130,7 +121,6 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.message").value(containsString("양수")))
                     .andDo(print());
             verify(userPointService,never()).addUserPoint(userId , amount);
-            verify(pointHistoryService,never()).addChargeHistory(userId , amount);
         }
 
         @Test
@@ -151,7 +141,6 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.message").value(containsString("양수")))
                     .andExpect(jsonPath("$.code").value("U0002"))
                     .andDo(print());
-            verify(pointHistoryService,never()).addChargeHistory(userId , amount);
         }
 
         @Test
@@ -171,7 +160,6 @@ class PointControllerTest {
                     .andExpect(jsonPath("$.message").value(containsString("양수")))
                     .andDo(print());
             verify(userPointService,never()).addUserPoint(userId , amount);
-            verify(pointHistoryService,never()).addChargeHistory(userId , amount);
         }
     }
 

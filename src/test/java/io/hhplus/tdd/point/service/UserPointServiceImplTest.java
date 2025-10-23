@@ -11,16 +11,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.BDDMockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
@@ -34,6 +33,9 @@ class UserPointServiceImplTest {
 
     @Mock
     UserPointRepository userPointRepository;
+
+    @Mock
+    PointHistoryService pointHistoryService;
 
     @Nested
     @DisplayName("유저 포인트 조회")
@@ -78,7 +80,7 @@ class UserPointServiceImplTest {
     class ChargePoint{
 
         @ParameterizedTest(name = "충전 point : {0}")
-        @CsvSource({"1000,2000,100000000"})
+        @CsvSource({"1000","2000","10000000"})
         void 충전_정상_테스트(long chargeAmount){
             //given
             long userId = 1l;
@@ -95,18 +97,46 @@ class UserPointServiceImplTest {
             assertThat(afterChargeDto.point()).isEqualTo(originUp.point() + chargeAmount);
         }
 
-        @ParameterizedTest(name = "충전 point : {0}")
+        @ParameterizedTest(name = "음수 충전 테스트")
         @CsvSource({"0 , -1000","0 , -1", "0 , -1000000"})
-        void 충전_비정상_테스트(long originPoint , long chargeAmount){
+        void 충전_음수_비정상_테스트(long originPoint , long chargeAmount){
             //given
             long userId = 1l;
             UserPoint originUp = new UserPoint(userId , originPoint , System.currentTimeMillis());
             given(userPointRepository.getUserPointByUserId(userId)).willReturn(Optional.of(originUp));
 
             //when
-            PointRangeException ex = org.junit.jupiter.api.Assertions.assertThrows(PointRangeException.class , ()->userPointService.addUserPoint(userId , chargeAmount));
+            PointRangeException ex = assertThrows(PointRangeException.class , ()->userPointService.addUserPoint(userId , chargeAmount));
             //then
             assertThat(ex.getErrCode().getErrCode()).isEqualTo("U0002");
+        }
+
+        @ParameterizedTest(name = "최소 금액 미만 충전 테스트")
+        @CsvSource({"0 , 0","0 , 1", "0 , 999"})
+        void 충전_최소금액미만_비정상_테스트(long originPoint , long chargeAmount){
+            //given
+            long userId = 1l;
+            UserPoint originUp = new UserPoint(userId , originPoint , System.currentTimeMillis());
+            given(userPointRepository.getUserPointByUserId(userId)).willReturn(Optional.of(originUp));
+
+            //when
+            PointRangeException ex = assertThrows(PointRangeException.class , ()->userPointService.addUserPoint(userId , chargeAmount));
+            //then
+            assertThat(ex.getErrCode().getErrCode()).isEqualTo("U0006");
+        }
+
+        @ParameterizedTest(name = "최대 포인트 초과 충전 테스트")
+        @CsvSource({"999000000 , 1000001","500000000 , 500000001", "1000000000 , 1000"})
+        void 충전_최대포인트초과_비정상_테스트(long originPoint , long chargeAmount){
+            //given
+            long userId = 1l;
+            UserPoint originUp = new UserPoint(userId , originPoint , System.currentTimeMillis());
+            given(userPointRepository.getUserPointByUserId(userId)).willReturn(Optional.of(originUp));
+
+            //when
+            PointRangeException ex = assertThrows(PointRangeException.class , ()->userPointService.addUserPoint(userId , chargeAmount));
+            //then
+            assertThat(ex.getErrCode().getErrCode()).isEqualTo("U0005");
         }
     }
 
@@ -130,18 +160,32 @@ class UserPointServiceImplTest {
             assertThat(afterChargeDto.point()).isEqualTo(originUp.point() - chargeAmount);
         }
 
-        @ParameterizedTest(name = "충전 point : {0}")
-        @CsvSource({"0 , 1000","100000 , 100001", "11 , 12"})
-        void 사용_비정상_테스트(long originPoint , long chargeAmount){
+        @ParameterizedTest(name = "잔액 부족 테스트")
+        @CsvSource({"0 , 1000","100000 , 100001", "200 , 300"})
+        void 사용_잔액부족_비정상_테스트(long originPoint , long chargeAmount){
             //given
             long userId = 1l;
             UserPoint originUp = new UserPoint(userId , originPoint , System.currentTimeMillis());
             given(userPointRepository.getUserPointByUserId(userId)).willReturn(Optional.of(originUp));
 
             //when
-            PointRangeException ex = org.junit.jupiter.api.Assertions.assertThrows(PointRangeException.class , ()->userPointService.useUserPoint(userId , chargeAmount));
+            PointRangeException ex = assertThrows(PointRangeException.class , ()->userPointService.useUserPoint(userId , chargeAmount));
             //then
             assertThat(ex.getErrCode().getErrCode()).isEqualTo("U0003");
+        }
+
+        @ParameterizedTest(name = "최소 금액 미만 사용 테스트")
+        @CsvSource({"10000 , 0","10000 , 1", "10000 , 99"})
+        void 사용_최소금액미만_비정상_테스트(long originPoint , long chargeAmount){
+            //given
+            long userId = 1l;
+            UserPoint originUp = new UserPoint(userId , originPoint , System.currentTimeMillis());
+            given(userPointRepository.getUserPointByUserId(userId)).willReturn(Optional.of(originUp));
+
+            //when
+            PointRangeException ex = assertThrows(PointRangeException.class , ()->userPointService.useUserPoint(userId , chargeAmount));
+            //then
+            assertThat(ex.getErrCode().getErrCode()).isEqualTo("U0007");
         }
     }
 

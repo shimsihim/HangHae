@@ -48,9 +48,7 @@ public class PointController {
             @PathVariable @Positive(message = "사용자 ID는 양수(0보다 큰 값)여야 합니다.") long id,
             @RequestBody @Valid PointChargeDTO pointChargeDTO
             ) {
-        UserPointDTO ret = userPointService.addUserPoint(id , pointChargeDTO.amount());
-        pointHistoryService.addChargeHistory(id , pointChargeDTO.amount());
-        return ret;
+        return userPointService.addUserPoint(id , pointChargeDTO.amount());
     }
 
     @PatchMapping("{id}/use")
@@ -58,8 +56,6 @@ public class PointController {
             @PathVariable @Positive(message = "사용자 ID는 양수(0보다 큰 값)여야 합니다.") long id,
             @RequestBody @Valid PointUseDTO pointUseDTO
     ) {
-        UserPointDTO ret = userPointService.useUserPoint(id , pointUseDTO.amount());
-        pointHistoryService.addUseHistory(id , pointUseDTO.amount());
-        return ret;
+        return userPointService.useUserPoint(id , pointUseDTO.amount());
     }
 }
