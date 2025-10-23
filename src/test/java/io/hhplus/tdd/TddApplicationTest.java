@@ -3,7 +3,9 @@ package io.hhplus.tdd;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.tdd.point.dto.request.PointChargeDTO;
+import io.hhplus.tdd.point.dto.request.PointUseDTO;
 import io.hhplus.tdd.point.dto.response.UserPointDTO;
+import io.hhplus.tdd.point.service.PointHistoryService;
 import io.hhplus.tdd.point.service.UserPointService;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +25,8 @@ import java.util.concurrent.Executors;
 import static org.assertj.core.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -38,15 +42,17 @@ class TddApplicationTest {
     @Autowired
     private UserPointService userPointService;
     @Autowired
+    private PointHistoryService pointHistoryService;
+    @Autowired
     ObjectMapper objectMapper;
 
+    private final static long testUserId = 1l;
+
+
     @BeforeEach
-    void setUp() {
-        System.out.println("setup");
-        for (int i = 0; i < 10; i++) {
-            UserPointDTO dto = userPointService.getUserPoint((long)i);
-            userPointService.useUserPoint(dto.id() , dto.point());
-        }
+    void setUp() { //인메모리 테이블 클래스로 인하여 매 테스트마다 직접 클린(유저 1)
+        UserPointDTO dto = userPointService.getUserPoint(testUserId);
+        userPointService.useUserPoint(dto.id() , dto.point());
     }
 
     @Nested
@@ -56,7 +62,7 @@ class TddApplicationTest {
         @Test
         void 유저포인트_획득_정상() throws Exception {
             //given
-            long userId = 1l;
+            long userId = testUserId;
             //when
             mvc.perform(get("/point/{id}" , userId))
                     //then
@@ -69,7 +75,7 @@ class TddApplicationTest {
         @Test
         void 유저포인트_획득_오류_음수_아이디() throws Exception {
             //given
-            long userId = -1l;
+            long userId = -testUserId;
             //when
             mvc.perform(get("/point/{id}" , userId))
                     //then
@@ -79,10 +85,24 @@ class TddApplicationTest {
         }
     }
 
-    @Nested
-    @DisplayName("유저 포인트 내역 Get")
-    class GetUserHistory{
+    @Test
+    void 사용자_포인트_히스토리_조회() throws Exception {
 
+        //given
+        long userId = testUserId * 10;
+        long amount = 1000l;
+        int testCnt = 10;
+        PointChargeDTO pt = new PointChargeDTO(1000l);
+        for (int i = 0; i < testCnt; i++) {
+            pointHistoryService.addChargeHistory(userId , amount);
+        }
+
+        //when
+        mvc.perform(get("/point/{id}/histories",userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(testCnt))
+                .andDo(print());
     }
 
     @Nested
@@ -92,7 +112,7 @@ class TddApplicationTest {
         @Test
         void 충전_1회_정상_테스트() throws Exception {
             //given
-            long userId = 1l;
+            long userId = testUserId;
             PointChargeDTO pt = new PointChargeDTO(1000L);
             //when
             mvc.perform(patch("/point/{id}/charge" , userId)
@@ -107,12 +127,36 @@ class TddApplicationTest {
         }
 
         @Test
-        void 충전_1회_실패_음수충전_테스트(){
+        void 충전_1회_실패_음수충전_테스트() throws Exception {
+            //given
+            long userId = 1l;
+            long amount = -10000;
+            PointChargeDTO pt = new PointChargeDTO(amount);
+            //when
+            mvc.perform(patch("/point/{id}/charge",userId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(pt)))
+            //then
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("양수")));
 
         }
 
         @Test
-        void 충전_1회_실패_음수아이디_테스트(){
+        void 충전_1회_실패_음수아이디_테스트() throws Exception {
+            //given
+            long userId = -1l;
+            PointChargeDTO dto = new PointChargeDTO(1000l);
+
+
+            //when
+            mvc.perform(patch("/point/{id}/charge" , userId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)))
+            //then
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("양수")))
+                    .andDo(print());
 
         }
 
@@ -161,10 +205,112 @@ class TddApplicationTest {
         }
     }
 
+
     @Nested
     @DisplayName("유저 포인트 사용")
     class UsePoint{
 
+        final static long initPoint = 10000l;
+
+        @BeforeEach
+        void chargeInitPoint(){
+            userPointService.addUserPoint(testUserId , initPoint);
+        }
+
+        @Test
+        void 사용_1회_정상_테스트() throws Exception {
+            //given
+            long usePoint = (long)(Math.random() * initPoint);
+            PointUseDTO pu = new PointUseDTO(usePoint);
+            //when
+            mvc.perform(patch("/point/{id}/use" , testUserId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(pu))
+                    )
+                    //then
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(testUserId))
+                    .andExpect(jsonPath("$.point").value(initPoint - usePoint))
+                    .andDo(print());
+        }
+
+        @Test
+        void 사용_1회_실패_음수사용_테스트() throws Exception {
+            //given
+            long usePoint = -initPoint;
+            PointUseDTO pu = new PointUseDTO(usePoint);
+            //when
+            mvc.perform(patch("/point/{id}/use" , testUserId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(pu))
+                    )
+                    //then
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("양수")));
+
+        }
+
+        @Test
+        void 사용_1회_실패_음수아이디_테스트() throws Exception {
+            //given
+            long userId = -testUserId;
+            long usePoint = (long)(Math.random() * initPoint);
+            PointUseDTO pu = new PointUseDTO(usePoint);
+            //when
+            mvc.perform(patch("/point/{id}/use" , userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(pu))
+                    )
+                    //then
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("양수")))
+                    .andDo(print());
+
+        }
+
+        @Test
+        void 사용_다회_동시성_테스트() throws InterruptedException {
+
+            //given
+            int threadPool = 7;
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch endLatch = new CountDownLatch(threadPool);
+
+            long usePointPerThread = initPoint/threadPool;
+            PointChargeDTO pt = new PointChargeDTO(usePointPerThread);
+
+            ExecutorService executorService = Executors.newFixedThreadPool(threadPool);
+
+            //when
+            for (int i = 0; i < threadPool; i++) {
+                executorService.submit(() -> {
+                    try {
+                        startLatch.await();
+                        mvc.perform(patch("/point/{id}/use" , testUserId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(pt))
+                        )
+                                .andDo(print());
+                    }
+                    catch(InterruptedException e){
+                        Thread.currentThread().interrupt();
+                    }
+                    catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        endLatch.countDown();
+                    }
+                });
+            }
+            startLatch.countDown();
+            endLatch.await();
+            executorService.shutdown();
+
+            //then
+            UserPointDTO dto = userPointService.getUserPoint(testUserId);
+            assertThat(dto.point()).isEqualTo(initPoint - (initPoint/threadPool) * threadPool);
+        }
     }
 
 }
